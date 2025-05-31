@@ -4,7 +4,7 @@ import subprocess
 def run_command(command, check=True):
     result = subprocess.run(command, shell=True, text=True)
     if check and result.returncode != 0:
-        print("❌ Une erreur est survenue.")
+        print("❌ Une erreur est survenue ou aucune mofification sur le code ")
         exit()
 
 def branch_exists(branch_name):
@@ -16,7 +16,7 @@ def remote_exists():
     return 'origin' in result.stdout
 
 def setup_remote(remote_url):
-    """Ajoute ou remplace le remote origin avec l'URL donnée."""
+    """Ajoute ou remplace le remote origin avec l'URL donnée"""
     if remote_exists():
         run_command("git remote remove origin")
     run_command(f"git remote add origin {remote_url}")
@@ -38,27 +38,32 @@ def menu_delete_branch():
     try:
         choice = int(input("Sélectionnez le numéro de la branche à supprimer (ou 0 pour annuler) : "))
         if choice == 0:
-            print("❌ Suppression annulée.")
+            print("❌ Suppression annulée")
             return
         selected_branch = branches[choice - 1]
 
         current_branch_result = subprocess.run("git branch --show-current", shell=True, text=True, capture_output=True)
         current_branch = current_branch_result.stdout.strip()
         if selected_branch == current_branch:
-            print("⚠️ Vous ne pouvez pas supprimer la branche actuellement utilisée.")
+            print("⚠️ la branche est actuellement utilisée donc elle ne peut pas être supprimée")
             return
 
         confirm = input(f"❓ Supprimer la branche `{selected_branch}` ? (y/n) : ").lower()
         if confirm == 'y':
             delete_branch(selected_branch)
-            print(f"✅ Branche `{selected_branch}` supprimée.")
+            print(f"✅ Branche `{selected_branch}` supprimée avec succès !")
         else:
-            print("❌ Suppression annulée.")
+            print("❌ Suppression annulée")
     except (ValueError, IndexError):
         print("❌ Entrée invalide.")
 
 def main():
-    print("🎉 Bienvenue dans AutoPusher :)")
+    print("""
+    ***************************************
+    *  Bienvenue dans AutoPusher v1.0      *
+    *  Automatisation des push GitHub      *
+    ***************************************
+    """)
 
     repo_path = input("📁 Chemin du dossier à pusher : ").strip()
     os.chdir(repo_path)
@@ -68,7 +73,12 @@ def main():
         init = input("🔧 Initialiser un dépôt Git ici ? (y/n) : ").lower()
         if init == 'y':
             run_command("git init")
-
+            print("✅ Dépôt Git initialisé.")
+        else:
+            print("❌ Opération annulée.")
+            return
+    else:
+        print("✅ Dépôt Git déjà initialisé.")
     specific_path = input("➕ Ajouter un fichier/dossier spécifique ? Sinon Entrée pour tout ajouter : ").strip()
     if specific_path:
         run_command(f"git add {specific_path}")
