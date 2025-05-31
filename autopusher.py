@@ -5,7 +5,7 @@ def run_command(command, check=True):
     """Exécute une commande shell et affiche les erreurs si besoin."""
     result = subprocess.run(command, shell=True, text=True)
     if check and result.returncode != 0:
-        print("❌ Aucune modification fait.")
+        print("❌ Aucune modification du code fait.")
         exit()
 
 def branch_exists(branch_name):
