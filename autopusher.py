@@ -100,7 +100,9 @@ def main():
             print(f"⚠️ La branche `{branch_name}` existe déjà.")
             print("1) Supprimer cette branche")
             print("2) Utiliser cette branche")
-            print("3) Annuler")
+            print("3) voir toutes les branches locales")
+            print("4) voir les branches distantes")
+            print("5) Annuler")
             branch_choice = input("Votre choix : ").strip()
 
             if branch_choice == '1':
@@ -108,8 +110,14 @@ def main():
                 run_command(f"git checkout -b {branch_name}")
             elif branch_choice == '2':
                 run_command(f"git checkout {branch_name}")
+            elif branch_choice == '3':
+                run_command("git branch", check=False)
+            elif branch_choice == '5':
+                print("❌ Action annulée.") 
+                exit()       
             else:
-                exit()
+                print("❌ Choix invalide.")
+                return
         else:
             run_command(f"git checkout -b {branch_name}")
 
