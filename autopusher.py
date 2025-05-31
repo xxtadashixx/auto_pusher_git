@@ -50,12 +50,18 @@ def team_menu(repo_path):
         elif choice == '5':
             run_command("git diff", check=False)
         elif choice == '6':
-            break
+            print("🔙 Retour au menu principal.")
+            def run_command(command, check=True):
+                result = subprocess.run(command, shell=True, text=True)
+                if check and result.returncode != 0:
+                    print("❌ Une erreur est survenue.")
+                    exit()
+            return
         else:
             print("❌ Choix invalide.")
 
 def main():
-    print("🎉 Bienvenue dans AutoPusher v2.1 🚀")
+    print("🎉 Bienvenue dans AutoPusher 🚀")
 
     print("\n🔧 Vous travaillez sur :")
     print("1) Un projet d'équipe")
