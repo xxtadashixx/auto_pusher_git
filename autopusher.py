@@ -56,7 +56,7 @@ def team_menu(repo_path):
                 if check and result.returncode != 0:
                     print("❌ Une erreur est survenue.")
                     exit()
-            return
+            return 
         else:
             print("❌ Choix invalide.")
 
@@ -137,7 +137,8 @@ def main():
             print(f"✅ Poussé sur la branche `{branch_name}` avec succès.")
         else:
             print("❌ Poussage annulé.")
-            return
+        print("🌿 Voulez-vous :\n1) Pusher sur main\n2) Créer une branche")
+        choice = input("Votre choix (1 ou 2) : ").strip()
 
     # Si c’est un projet personnel → menu équipe activé
     if not is_team_project:
