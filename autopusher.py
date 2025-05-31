@@ -3,164 +3,239 @@ import subprocess
 from pathlib import Path
 
 def run_command(command, check=True, cwd=None):
-    """Exécute une commande shell et affiche les erreurs si besoin."""
-    result = subprocess.run(command, shell=True, text=True, 
-                          stdout=subprocess.PIPE, stderr=subprocess.PIPE, cwd=cwd)
-    if check and result.returncode != 0:
-        print(f"❌ Erreur: {result.stderr}")
+    """Exécute une commande shell et gère les erreurs"""
+    try:
+        result = subprocess.run(command, shell=True, text=True,
+                              stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                              cwd=cwd)
+        if check and result.returncode != 0:
+            print(f"❌ Erreur: {result.stderr.strip()}")
+            return None
+        return result.stdout.strip()
+    except Exception as e:
+        print(f"❌ Exception: {str(e)}")
         return None
-    return result.stdout
 
 def branch_exists(branch_name, repo_path):
-    """Vérifie si une branche locale existe."""
-    result = subprocess.run(f"git branch --list {branch_name}", shell=True, 
-                          text=True, capture_output=True, cwd=repo_path)
-    return branch_name in result.stdout
+    """Vérifie si une branche existe localement"""
+    branches = run_command("git branch --list", cwd=repo_path)
+    return branches and branch_name in branches.split("\n")
 
 def remote_exists(repo_path):
-    """Vérifie si un remote 'origin' est déjà configuré."""
-    result = subprocess.run("git remote", shell=True, 
-                          text=True, capture_output=True, cwd=repo_path)
-    return 'origin' in result.stdout
+    """Vérifie si le remote origin est configuré"""
+    remotes = run_command("git remote", cwd=repo_path)
+    return remotes and "origin" in remotes.split("\n")
+
+def get_current_branch(repo_path):
+    """Récupère la branche actuelle"""
+    return run_command("git branch --show-current", cwd=repo_path)
+
+def switch_to_main_branch(repo_path):
+    """Bascule vers la branche main/master ou en crée une si nécessaire"""
+    # Vérifie d'abord si main existe
+    if run_command("git show-ref --verify refs/heads/main", cwd=repo_path, check=False):
+        return run_command("git checkout main", cwd=repo_path) is not None
+    
+    # Sinon vérifie master
+    if run_command("git show-ref --verify refs/heads/master", cwd=repo_path, check=False):
+        return run_command("git checkout master", cwd=repo_path) is not None
+    
+    # Sinon crée main
+    print("ℹ️ Création de la branche main...")
+    if (run_command("git checkout --orphan main", cwd=repo_path) is not None and
+        run_command("git rm -rf .", cwd=repo_path, check=False) is not None and
+        run_command("git commit --allow-empty -m 'Initial commit'", cwd=repo_path) is not None):
+        return True
+    
+    return False
 
 def delete_branch(branch_name, repo_path):
-    """Supprime une branche locale de manière sécurisée."""
-    # Vérifie la branche actuelle
-    current_branch = run_command("git branch --show-current", cwd=repo_path)
+    """Supprime une branche locale de manière sécurisée"""
+    current_branch = get_current_branch(repo_path)
     if current_branch is None:
-        print("❌ Impossible de déterminer la branche actuelle")
         return False
     
-    current_branch = current_branch.strip()
-    
-    # Si on est sur la branche à supprimer, on se déplace d'abord
     if current_branch == branch_name:
-        print(f"⚠️ Vous êtes sur la branche à supprimer. Changement vers 'main' temporairement...")
-        if run_command("git checkout main", cwd=repo_path) is None:
+        print(f"⚠️ Vous êtes sur la branche à supprimer. Basculement vers main...")
+        if not switch_to_main_branch(repo_path):
             return False
     
-    # Suppression de la branche
     if run_command(f"git branch -D {branch_name}", cwd=repo_path) is None:
         return False
     
-    print(f"✅ Branche '{branch_name}' supprimée avec succès")
+    print(f"✅ Branche '{branch_name}' supprimée")
     return True
 
-def main():
-    print("🎉 Bienvenue dans AutoPusher :)")
-
-    # 1. Choisir le dossier
-    while True:
-        repo_path = input("📁 Coller le chemin du dossier à pusher : ").strip()
-        if not os.path.exists(repo_path):
-            print("❌ Chemin invalide. Veuillez réessayer.")
-            continue
-        break
+def initialize_repo(repo_path):
+    """Initialise un nouveau dépôt Git"""
+    if run_command("git init", cwd=repo_path) is None:
+        return False
     
-    try:
-        os.chdir(repo_path)
-        repo_path = os.getcwd()  # Normalise le chemin
-        print(f"📂 Répertoire actuel : {repo_path}")
-    except Exception as e:
-        print(f"❌ Impossible d'accéder au répertoire: {e}")
-        exit()
+    # Crée un premier commit vide
+    os.chdir(repo_path)
+    with open("README.md", "w") as f:
+        f.write("# Nouveau projet\n")
+    
+    if (run_command("git add README.md", cwd=repo_path) is not None and
+        run_command("git commit -m 'Initial commit'", cwd=repo_path) is not None):
+        return True
+    return False
 
-    # 2. Initialiser si besoin
-    if not os.path.exists(os.path.join(repo_path, ".git")):
-        init = input("🔧 Voulez-vous initialiser un dépôt Git ici ? (y/n) : ").lower()
-        if init == 'y':
-            if run_command("git init", cwd=repo_path) is None:
-                exit()
-
-    # 3. Ajouter fichiers
-    specific_path = input("➕ Ajouter un fichier/dossier spécifique ? Sinon Entrée pour tout ajouter : ").strip()
+def add_files(repo_path):
+    """Gère l'ajout des fichiers au staging"""
+    specific_path = input("➕ Chemin spécifique (ou Entrée pour tout ajouter) : ").strip()
     if specific_path:
         full_path = os.path.join(repo_path, specific_path)
         if not os.path.exists(full_path):
-            print(f"❌ Le chemin '{specific_path}' n'existe pas")
-            exit()
-        if run_command(f"git add {specific_path}", cwd=repo_path) is None:
-            exit()
+            print(f"❌ Chemin invalide: {specific_path}")
+            return False
+        return run_command(f"git add {specific_path}", cwd=repo_path) is not None
     else:
-        if run_command("git add .", cwd=repo_path) is None:
-            exit()
+        return run_command("git add .", cwd=repo_path) is not None
 
-    # 4. Commit
-    commit_msg = input("📝 Message de commit : ").strip()
-    if not commit_msg:
-        print("❌ Le message de commit ne peut pas être vide")
-        exit()
-    
-    if run_command(f'git commit -m "{commit_msg}"', cwd=repo_path) is None:
-        exit()
-
-    # 5. Choix de push
-    print("🌿 Voulez-vous :\n1) Pusher sur main\n2) Créer une branche")
+def create_commit(repo_path):
+    """Crée un nouveau commit"""
     while True:
-        choice = input("Votre choix (1 ou 2) : ").strip()
-        if choice in ('1', '2'):
+        commit_msg = input("📝 Message de commit : ").strip()
+        if commit_msg:
             break
-        print("❌ Choix invalide. Veuillez entrer 1 ou 2")
+        print("❌ Le message ne peut pas être vide")
+    
+    return run_command(f'git commit -m "{commit_msg}"', cwd=repo_path) is not None
 
-    if choice == '1':
-        # Branch main
-        if run_command("git branch -M main", cwd=repo_path) is None:
-            exit()
-            
-        if not remote_exists(repo_path):
-            remote_url = input("🔗 Entrer l'URL du dépôt distant (GitHub) : ").strip()
-            if run_command(f"git remote add origin {remote_url}", cwd=repo_path) is None:
-                exit()
-        
-        if run_command("git push -u origin main", cwd=repo_path) is not None:
-            print("🚀 Poussé sur la branche `main` avec succès !")
+def push_to_main(repo_path):
+    """Pousse les changements sur la branche main"""
+    # Force la branche main si elle n'existe pas
+    if not branch_exists("main", repo_path):
+        run_command("git branch -M main", cwd=repo_path)
+    
+    if not remote_exists(repo_path):
+        remote_url = input("🔗 URL du dépôt distant : ").strip()
+        if not remote_url.startswith(("http", "git@")):
+            print("❌ URL invalide. Doit commencer par http://, https:// ou git@")
+            return False
+        if run_command(f"git remote add origin {remote_url}", cwd=repo_path) is None:
+            return False
+    
+    return run_command("git push -u origin main", cwd=repo_path) is not None
 
-    elif choice == '2':
-        while True:
-            branch_name = input("🌱 Nom de la branche à créer : ").strip()
-            if branch_name:
-                break
-            print("❌ Le nom de branche ne peut pas être vide")
+def handle_existing_branch(branch_name, repo_path):
+    """Gère le cas où la branche existe déjà"""
+    print(f"⚠️ La branche '{branch_name}' existe déjà.")
+    print("1) Supprimer et recréer\n2) Utiliser cette branche\n3) Annuler")
+    
+    while True:
+        choice = input("Choix (1/2/3) : ").strip()
+        if choice == "1":
+            if not delete_branch(branch_name, repo_path):
+                return False
+            return run_command(f"git checkout -b {branch_name}", cwd=repo_path) is not None
+        elif choice == "2":
+            return run_command(f"git checkout {branch_name}", cwd=repo_path) is not None
+        elif choice == "3":
+            return None  # Signale l'annulation
+        print("❌ Choix invalide")
 
-        # Vérifie si la branche existe déjà
-        if branch_exists(branch_name, repo_path):
-            print(f"⚠️ La branche '{branch_name}' existe déjà.")
-            print("Que voulez-vous faire ?")
-            print("1) Supprimer cette branche et en créer une nouvelle")
-            print("2) Utiliser cette branche existante")
-            print("3) Annuler")
-            
-            while True:
-                branch_choice = input("Votre choix (1/2/3) : ").strip()
-                if branch_choice in ('1', '2', '3'):
-                    break
-                print("❌ Choix invalide. Veuillez entrer 1, 2 ou 3")
+def push_to_new_branch(repo_path):
+    """Pousse les changements sur une nouvelle branche"""
+    while True:
+        branch_name = input("🌱 Nom de la nouvelle branche : ").strip()
+        if branch_name:
+            break
+        print("❌ Le nom ne peut pas être vide")
+    
+    # Gestion de la branche existante
+    if branch_exists(branch_name, repo_path):
+        result = handle_existing_branch(branch_name, repo_path)
+        if result is None:  # Annulation
+            return False
+        if not result:  # Échec
+            return False
+    else:
+        if run_command(f"git checkout -b {branch_name}", cwd=repo_path) is None:
+            return False
+    
+    # Configuration du remote si nécessaire
+    if not remote_exists(repo_path):
+        remote_url = input("🔗 URL du dépôt distant : ").strip()
+        if not remote_url.startswith(("http", "git@")):
+            print("❌ URL invalide")
+            return False
+        if run_command(f"git remote add origin {remote_url}", cwd=repo_path) is None:
+            return False
+    
+    # Confirmation du push
+    confirm = input(f"🚀 Pousser sur '{branch_name}' ? (o/n) : ").lower()
+    if confirm != 'o':
+        print("⏹️ Push annulé")
+        return True  # Considéré comme succès sans push
+    
+    return run_command(f"git push -u origin {branch_name}", cwd=repo_path) is not None
 
-            if branch_choice == '1':
-                if not delete_branch(branch_name, repo_path):
-                    exit()
-                if run_command(f"git checkout -b {branch_name}", cwd=repo_path) is None:
-                    exit()
-            elif branch_choice == '2':
-                if run_command(f"git checkout {branch_name}", cwd=repo_path) is None:
-                    exit()
-            else:
-                print("⏹️ Opération annulée.")
-                exit()
+def main():
+    print("\n🎉 Bienvenue dans AutoPusher v2.0 🚀\n")
+
+    # 1. Sélection du répertoire
+    while True:
+        repo_path = input("📁 Chemin du dossier : ").strip()
+        if os.path.isdir(repo_path):
+            break
+        print("❌ Dossier introuvable")
+    
+    try:
+        repo_path = os.path.abspath(repo_path)
+        os.chdir(repo_path)
+        print(f"📂 Dossier : {repo_path}")
+    except Exception as e:
+        print(f"❌ Erreur d'accès : {e}")
+        return
+
+    # 2. Initialisation Git si nécessaire
+    if not os.path.exists(os.path.join(repo_path, ".git")):
+        if input("🔧 Initialiser un dépôt Git ? (o/n) : ").lower() == 'o':
+            if not initialize_repo(repo_path):
+                print("❌ Échec de l'initialisation")
+                return
+            print("✅ Dépôt initialisé")
         else:
-            if run_command(f"git checkout -b {branch_name}", cwd=repo_path) is None:
-                exit()
+            print("❌ Ce n'est pas un dépôt Git")
+            return
 
-        # Push de la branche
-        if not remote_exists(repo_path):
-            remote_url = input("🔗 Entrer l'URL du dépôt distant (GitHub) : ").strip()
-            if run_command(f"git remote add origin {remote_url}", cwd=repo_path) is None:
-                exit()
+    # 3. Ajout des fichiers
+    if not add_files(repo_path):
+        print("❌ Échec de l'ajout des fichiers")
+        return
 
-        confirm_push = input(f"🚀 Pusher sur la branche '{branch_name}' ? (y/n) : ").lower()
-        if confirm_push == 'y':
-            if run_command(f"git push -u origin {branch_name}", cwd=repo_path) is not None:
-                print(f"✅ Poussé sur la branche '{branch_name}' avec succès !")
+    # 4. Création du commit
+    if not create_commit(repo_path):
+        print("❌ Échec du commit")
+        return
+
+    # 5. Choix du push
+    print("\n🌿 Options de push :")
+    print("1) Pusher sur main")
+    print("2) Créer une nouvelle branche")
+    
+    while True:
+        choice = input("Votre choix (1/2) : ").strip()
+        if choice in ("1", "2"):
+            break
+        print("❌ Choix invalide")
+    
+    success = False
+    if choice == "1":
+        success = push_to_main(repo_path)
+        if success:
+            print("\n✅ Push sur main réussi!")
+    else:
+        success = push_to_new_branch(repo_path)
+        if success:
+            print("\n✅ Push sur la nouvelle branche réussi!")
+    
+    if not success:
+        print("\n❌ Échec de l'opération")
+    else:
+        print("\n🎉 Opération terminée avec succès!")
 
 if __name__ == "__main__":
     main()
