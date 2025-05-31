@@ -112,8 +112,14 @@ def main():
             branch_choice = input("Votre choix : ").strip()
 
             if branch_choice == '1':
+                def delete_branch(branch_name):
+                    current_branch = run_command("git rev-parse --abbrev-ref HEAD", check=False).strip()
+                    if current_branch == branch_name:
+                        print(f"🔄 Vous êtes actuellement sur la branche `{branch_name}`. Changement temporaire vers `main` pour la suppression.")
+                        run_command("git checkout main")
+                    run_command(f"git branch -D {branch_name}")
                 delete_branch(branch_name)
-                run_command(f"git checkout -b {branch_name}")
+                print(f"✅🗑️ Branche `{branch_name}` supprimée avec succès.")
             elif branch_choice == '2':
                 run_command(f"git checkout {branch_name}")
             elif branch_choice == '3':
