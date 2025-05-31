@@ -53,7 +53,6 @@ def menu_delete_branch():
         if confirm == 'y':
             delete_branch(selected_branch)
             print(f"✅ Branche `{selected_branch}` supprimée.")
-            branch_exists()
         else:
             print("❌ Suppression annulée.")
     except (ValueError, IndexError):
