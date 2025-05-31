@@ -87,11 +87,10 @@ def main():
 
     commit_msg = input("📝 Message de commit : ").strip()
     run_command(f'git commit -m "{commit_msg}"')
-    
-    def main_push_menu():
-        print("🌿 Voulez-vous :\n1) Pusher sur main\n2) Créer une branche")
-        choice = input("Votre choix (1 ou 2) : ").strip()
-    main_push_menu()
+
+    print("🌿 Voulez-vous :\n1) Pusher sur main\n2) Créer une branche")
+    choice = input("Votre choix (1 ou 2) : ").strip()
+
     if choice == '1':
         run_command("git branch -M main")
         if not remote_exists():
@@ -132,18 +131,13 @@ def main():
             remote_url = input("🔗 URL du dépôt distant (GitHub) : ").strip()
             run_command(f"git remote add origin {remote_url}")
 
-        while True:
-            confirm_push = input(f"🚀 Pusher sur la branche `{branch_name}` ? (y/n) : ").lower()
-            if confirm_push == 'y':
-                run_command(f"git push -u origin {branch_name}")
-                print(f"✅ Poussé sur la branche `{branch_name}` avec succès.")
-                break  # on sort de la boucle
-            elif confirm_push == 'n':
-                print("↩️ Retour au menu précédent...\n")
-                return main_push_menu()  # ou appelle une fonction ou reboucle
-            else:
-                print("❌ Entrée invalide. Tapez 'y' ou 'n'.")
-
+        confirm_push = input(f"🚀 Pusher sur la branche `{branch_name}` ? (y/n) : ").lower()
+        if confirm_push == 'y':
+            run_command(f"git push -u origin {branch_name}")
+            print(f"✅ Poussé sur la branche `{branch_name}` avec succès.")
+        else:
+            print("❌ Poussage annulé.")
+        return
 
     # Si c’est un projet personnel → menu équipe activé
     if not is_team_project:
