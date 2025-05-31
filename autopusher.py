@@ -92,9 +92,6 @@ def main():
         print("🌿 Voulez-vous :\n1) Pusher sur main\n2) Créer une branche")
         choice = input("Votre choix (1 ou 2) : ").strip()
     main_push_menu()
-    choice = input("Votre choix (1 ou 2) : ").strip()
-    if choice not in ['1', '2']:
-        print("❌ Choix invalide. Veuillez choisir 1 ou 2.")
     if choice == '1':
         run_command("git branch -M main")
         if not remote_exists():
