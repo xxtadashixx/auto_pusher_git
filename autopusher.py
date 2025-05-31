@@ -22,6 +22,42 @@ def delete_branch(branch_name):
     """Supprime une branche locale."""
     run_command(f"git branch -D {branch_name}")
 
+def list_local_branches():
+    """Liste toutes les branches locales."""
+    result = subprocess.run("git branch", shell=True, text=True, capture_output=True)
+    branches = result.stdout.strip().split('\n')
+    return [b.strip().replace("* ", "") for b in branches]
+
+def menu_delete_branch():
+    """Menu pour afficher et supprimer une branche locale."""
+    branches = list_local_branches()
+    print("\n🧹 Liste des branches locales :")
+    for i, branch in enumerate(branches):
+        print(f"{i + 1}) {branch}")
+
+    try:
+        choice = int(input("Sélectionnez le numéro de la branche à supprimer (ou 0 pour annuler) : "))
+        if choice == 0:
+            print("❌ Suppression annulée.")
+            return
+        selected_branch = branches[choice - 1]
+
+        # Ne pas supprimer la branche actuellement utilisée
+        current_branch_result = subprocess.run("git branch --show-current", shell=True, text=True, capture_output=True)
+        current_branch = current_branch_result.stdout.strip()
+        if selected_branch == current_branch:
+            print("⚠️ Vous ne pouvez pas supprimer la branche actuellement utilisée.")
+            return
+
+        confirm = input(f"❓ Êtes-vous sûr de vouloir supprimer la branche `{selected_branch}` ? (y/n) : ").lower()
+        if confirm == 'y':
+            delete_branch(selected_branch)
+            print(f"✅ Branche `{selected_branch}` supprimée.")
+        else:
+            print("❌ Suppression annulée.")
+    except (ValueError, IndexError):
+        print("❌ Entrée invalide.")
+
 def main():
     print("🎉 Bienvenue dans AutoPusher :)")
 
@@ -48,8 +84,8 @@ def main():
     run_command(f'git commit -m "{commit_msg}"')
 
     # 5. Choix de push
-    print("🌿 Voulez-vous :\n1) Pusher sur main\n2) Créer une branche")
-    choice = input("Votre choix (1 ou 2) : ").strip()
+    print("🌿 Que voulez-vous faire :\n1) Pusher sur main\n2) Créer une branche\n3) Gérer les branches (voir/supprimer)")
+    choice = input("Votre choix (1, 2 ou 3) : ").strip()
 
     if choice == '1':
         # Branch main
@@ -63,27 +99,25 @@ def main():
     elif choice == '2':
         branch_name = input("🌱 Nom de la branche à créer : ").strip()
 
-        # Vérifie si la branche existe déjà
         if branch_exists(branch_name):
             print(f"⚠️ La branche `{branch_name}` existe déjà.")
             print("Que voulez-vous faire ?")
             print("1) Utiliser cette branche")
-            print("2) choisir un autre nom")
-            print("2) Annuler")
+            print("2) Choisir un autre nom")
+            print("3) Annuler")
             branch_choice = input("Votre choix (1/2/3) : ").strip()
 
             if branch_choice == '1':
                 run_command(f"git checkout {branch_name}")
             elif branch_choice == '2':
-                branch_name = input("🌱 Nouveau nom de la branche : ").strip(
-                f"git checkout -b {branch_name}"
-                )
+                branch_name = input("🌱 Nouveau nom de la branche : ").strip()
+                run_command(f"git checkout -b {branch_name}")
             elif branch_choice == '3':
                 print("⏹️ Opération annulée.")
-                exit()
+                return
             else:
                 print("❌ Choix invalide, opération annulée.")
-            exit()
+                return
         else:
             run_command(f"git checkout -b {branch_name}")
 
@@ -98,6 +132,10 @@ def main():
             print(f"✅ Poussé sur la branche `{branch_name}` avec succès !")
         else:
             print("❌ Push annulé.")
+
+    elif choice == '3':
+        menu_delete_branch()
+
     else:
         print("❌ Choix invalide.")
 
