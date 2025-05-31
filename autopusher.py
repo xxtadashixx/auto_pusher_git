@@ -135,6 +135,9 @@ def main():
         if confirm_push == 'y':
             run_command(f"git push -u origin {branch_name}")
             print(f"✅ Poussé sur la branche `{branch_name}` avec succès.")
+        else:
+            print("❌ Poussage annulé.")
+            return
 
     # Si c’est un projet personnel → menu équipe activé
     if not is_team_project:
