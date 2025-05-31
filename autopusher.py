@@ -1,8 +1,10 @@
 import os
 import subprocess
+import shutil
+from datetime import datetime
 
 def run_command(command, check=True):
-    """Exécute une commande shell et affiche les erreurs si besoin."""
+    """Exécute une commande shell."""
     result = subprocess.run(command, shell=True, text=True)
     if check and result.returncode != 0:
         print("❌ Une erreur est survenue.")
@@ -22,8 +24,44 @@ def delete_branch(branch_name):
     """Supprime une branche locale."""
     run_command(f"git branch -D {branch_name}")
 
+def backup_before_merge(repo_path):
+    """Crée une sauvegarde du dossier avant un merge."""
+    backup_folder = os.path.join(repo_path, f"backup_before_merge_{datetime.now().strftime('%Y%m%d_%H%M%S')}")
+    shutil.copytree(repo_path, backup_folder, ignore=shutil.ignore_patterns(".git", "backup*"))
+    print(f"🗃️ Dossier sauvegardé dans : {backup_folder}")
+
+def team_menu(repo_path):
+    """Menu pour travailler en équipe."""
+    while True:
+        print("\n👥 Menu travail en équipe :")
+        print("1) `git pull`")
+        print("2) `git merge` une branche")
+        print("3) Voir `git status`")
+        print("4) Voir `git log --oneline`")
+        print("5) Voir `git diff`")
+        print("6) Revenir au menu principal")
+
+        choice = input("Votre choix (1-6) : ").strip()
+
+        if choice == '1':
+            run_command("git pull")
+        elif choice == '2':
+            other_branch = input("🔀 Nom de la branche à merger dans la tienne : ").strip()
+            backup_before_merge(repo_path)
+            run_command(f"git merge {other_branch}")
+        elif choice == '3':
+            run_command("git status", check=False)
+        elif choice == '4':
+            run_command("git log --oneline", check=False)
+        elif choice == '5':
+            run_command("git diff", check=False)
+        elif choice == '6':
+            break
+        else:
+            print("❌ Choix invalide.")
+
 def main():
-    print("🎉 Bienvenue dans AutoPusher :)")
+    print("🎉 Bienvenue dans AutoPusher v2.0 🚀")
 
     # 1. Choisir le dossier
     repo_path = input("📁 Coller le chemin du dossier à pusher : ").strip()
@@ -32,7 +70,7 @@ def main():
 
     # 2. Initialiser si besoin
     if not os.path.exists(".git"):
-        init = input("🔧 Voulez-vous initialiser un dépôt Git ici ? (y/n) : ").lower()
+        init = input("🔧 Initialiser un dépôt Git ici ? (y/n) : ").lower()
         if init == 'y':
             run_command("git init")
 
@@ -52,25 +90,22 @@ def main():
     choice = input("Votre choix (1 ou 2) : ").strip()
 
     if choice == '1':
-        # Branch main
         run_command("git branch -M main")
         if not remote_exists():
-            remote_url = input("🔗 Entrer l'URL du dépôt distant (GitHub) : ").strip()
+            remote_url = input("🔗 URL du dépôt distant (GitHub) : ").strip()
             run_command(f"git remote add origin {remote_url}")
         run_command("git push -u origin main")
-        print("🚀 Poussé sur la branche `main` avec succès !")
+        print("✅ Poussé sur `main` avec succès.")
 
     elif choice == '2':
         branch_name = input("🌱 Nom de la branche à créer : ").strip()
 
-        # Vérifie si la branche existe déjà
         if branch_exists(branch_name):
             print(f"⚠️ La branche `{branch_name}` existe déjà.")
-            print("Que voulez-vous faire ?")
             print("1) Supprimer cette branche")
             print("2) Utiliser cette branche")
             print("3) Annuler")
-            branch_choice = input("Votre choix (1/2/3) : ").strip()
+            branch_choice = input("Votre choix : ").strip()
 
             if branch_choice == '1':
                 delete_branch(branch_name)
@@ -78,24 +113,23 @@ def main():
             elif branch_choice == '2':
                 run_command(f"git checkout {branch_name}")
             else:
-                print("⏹️ Opération annulée.")
                 exit()
         else:
             run_command(f"git checkout -b {branch_name}")
 
-        # Push de la branche
         if not remote_exists():
-            remote_url = input("🔗 Entrer l'URL du dépôt distant (GitHub) : ").strip()
+            remote_url = input("🔗 URL du dépôt distant (GitHub) : ").strip()
             run_command(f"git remote add origin {remote_url}")
 
         confirm_push = input(f"🚀 Pusher sur la branche `{branch_name}` ? (y/n) : ").lower()
         if confirm_push == 'y':
             run_command(f"git push -u origin {branch_name}")
-            print(f"✅ Poussé sur la branche `{branch_name}` avec succès !")
-        else:
-            print("❌ Push annulé.")
-    else:
-        print("❌ Choix invalide.")
+            print(f"✅ Poussé sur la branche `{branch_name}` avec succès.")
+
+    # 6. Menu équipe
+    team_collab = input("\n👥 Travailles-tu en équipe ? Accéder au menu collaboration ? (y/n) : ").lower()
+    if team_collab == 'y':
+        team_menu(repo_path)
 
 if __name__ == "__main__":
     main()
