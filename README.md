@@ -20,7 +20,8 @@
 
 ---
 
-## 🛠 Installation
+## 🛠 Installation et lancement 
 
 ```bash
 cd dist
+python3 autopusher.py
