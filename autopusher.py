@@ -22,6 +22,20 @@ def delete_branch(branch_name):
     """Supprime une branche locale."""
     run_command(f"git branch -D {branch_name}")
 
+def delete_branch(branch_name):
+    result = run_command("git rev-parse --abbrev-ref HEAD", check=False)
+    if result is None:
+        print("❌ Impossible de récupérer la branche actuelle.")
+        return
+
+    current_branch = result.strip()
+    if current_branch == branch_name:
+        print(f"🔄 Vous êtes actuellement sur la branche `{branch_name}`. Changement temporaire vers `main` pour la suppression.")
+        run_command("git checkout main")
+    
+    run_command(f"git branch -D {branch_name}")
+    print(f"✅🗑️ Branche `{branch_name}` supprimée avec succès.")    
+
 def main():
     print("🎉 Bienvenue dans AutoPusher :)")
 
