@@ -87,15 +87,14 @@ def main():
 
     commit_msg = input("📝 Message de commit : ").strip()
     run_command(f'git commit -m "{commit_msg}"')
+    
     def main_push_menu():
-        print("\n🌿 Menu de Pousser :")
-        print("1) Pousser sur `main`")
-        print("2) Créer une branche et pousser")
+        print("🌿 Voulez-vous :\n1) Pusher sur main\n2) Créer une branche")
         choice = input("Votre choix (1 ou 2) : ").strip()
-        return choice
-    choice = main_push_menu()
+    main_push_menu()
+    choice = input("Votre choix (1 ou 2) : ").strip()
     if choice not in ['1', '2']:
-        print("❌ Choix invalide. Veuillez sélectionner 1 ou 2.")
+        print("❌ Choix invalide. Veuillez choisir 1 ou 2.")
     if choice == '1':
         run_command("git branch -M main")
         if not remote_exists():
