@@ -62,6 +62,7 @@ def main():
     ***************************************
     *  Bienvenue dans AutoPusher v1.0      *
     *  Automatisation des push GitHub      *
+    *  par xxtadashixx                     *
     ***************************************
     """)
 
@@ -79,7 +80,7 @@ def main():
             return
     else:
         print("✅ Dépôt Git déjà initialisé.")
-    specific_path = input("➕ Ajouter un fichier/dossier spécifique ? Sinon Entrée pour tout ajouter : ").strip()
+    specific_path = input("➕ entrez le dossier specifique à pusher ou sinon appuyez sur Entrée pour tout ajouter : ").strip()
     if specific_path:
         run_command(f"git add {specific_path}")
     else:
@@ -89,7 +90,7 @@ def main():
     run_command(f'git commit -m "{commit_msg}"')
 
     print("🌿 Que voulez-vous faire :\n1) Pusher sur main\n2) Créer une branche\n3) Gérer les branches (voir/supprimer)")
-    choice = input("Votre choix (1, 2 ou 3) : ").strip()
+    choice = input("entrez votre choix (1 ou 2 ou 3) : ").strip()
 
     if choice == '1':
         run_command("git branch -M main")
@@ -102,7 +103,7 @@ def main():
         branch_name = input("🌱 Nom de la branche à créer : ").strip()
 
         if branch_exists(branch_name):
-            print(f"⚠️ La branche `{branch_name}` existe déjà.")
+            print(f"⚠️ La branche `{branch_name}` existe déjà")
             print("1) Utiliser cette branche\n2) Choisir un autre nom\n3) Annuler")
             branch_choice = input("Votre choix (1/2/3) : ").strip()
 
@@ -112,10 +113,10 @@ def main():
                 branch_name = input("🌱 Nouveau nom de la branche : ").strip()
                 run_command(f"git checkout -b {branch_name}")
             elif branch_choice == '3':
-                print("⏹️ Opération annulée.")
+                print("⏹️ Opération annulée")
                 return
             else:
-                print("❌ Choix invalide.")
+                print("❌ Choix invalide")
                 return
         else:
             run_command(f"git checkout -b {branch_name}")
@@ -128,13 +129,13 @@ def main():
             run_command(f"git push -u origin {branch_name}")
             print(f"✅ Poussé sur `{branch_name}` avec succès !")
         else:
-            print("❌ Push annulé.")
+            print("❌ Push annulé")
 
     elif choice == '3':
         menu_delete_branch()
 
     else:
-        print("❌ Choix invalide.")
+        print("❌ Choix invalide")
 
 if __name__ == "__main__":
     main()
