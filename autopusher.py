@@ -54,7 +54,7 @@ def team_menu(repo_path):
             def run_command(command, check=True):
                 result = subprocess.run(command, shell=True, text=True)
                 if check and result.returncode != 0:
-                    print("❌ Une erreur est survenue.")
+                    print("❌ rien à valider.")
                     exit()
             return 
         else:
