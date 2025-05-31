@@ -59,6 +59,20 @@ def team_menu(repo_path):
             return 
         else:
             print("❌ Choix invalide.")
+def delete_branch(branch_name):
+    result = run_command("git rev-parse --abbrev-ref HEAD", check=False)
+    if result is None:
+        print("❌ Impossible de récupérer la branche actuelle.")
+        return
+
+    current_branch = result.strip()
+    if current_branch == branch_name:
+        print(f"🔄 Vous êtes actuellement sur la branche `{branch_name}`. Changement temporaire vers `main` pour la suppression.")
+        run_command("git checkout main")
+    
+    run_command(f"git branch -D {branch_name}")
+    print(f"✅🗑️ Branche `{branch_name}` supprimée avec succès.")
+
 
 def main():
     print("🎉 Bienvenue dans AutoPusher 🚀")
@@ -112,14 +126,8 @@ def main():
             branch_choice = input("Votre choix : ").strip()
 
             if branch_choice == '1':
-                def delete_branch(branch_name):
-                    current_branch = run_command("git rev-parse --abbrev-ref HEAD", check=False).strip()
-                    if current_branch == branch_name:
-                        print(f"🔄 Vous êtes actuellement sur la branche `{branch_name}`. Changement temporaire vers `main` pour la suppression.")
-                        run_command("git checkout main")
-                    run_command(f"git branch -D {branch_name}")
                 delete_branch(branch_name)
-                print(f"✅🗑️ Branche `{branch_name}` supprimée avec succès.")
+                print(f"✅ Branche `{branch_name}` supprimée.")
             elif branch_choice == '2':
                 run_command(f"git checkout {branch_name}")
             elif branch_choice == '3':
